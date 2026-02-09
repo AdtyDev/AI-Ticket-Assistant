@@ -10,7 +10,7 @@ from fastapi import APIRouter, Header, HTTPException
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
-from server.chatbot import create_ticket_tool, get_ticket_tool
+from server.chatbot import create_ticket_tool, get_ticket_tool, update_ticket_tool
 from server.ai_schemas.chat import ChatRequest
 
 import datetime
@@ -25,7 +25,7 @@ llm = ChatGroq(
     temperature=0
 )
 
-llm_with_tools = llm.bind_tools([create_ticket_tool,get_ticket_tool])
+llm_with_tools = llm.bind_tools([create_ticket_tool,get_ticket_tool,update_ticket_tool])
 
 # SYSTEM PROMPT
 SYSTEM_PROMPT = """
@@ -40,6 +40,7 @@ You can:
 1. TICKET CREATION
 2. VIEWING / GETTING TICKETS
 3. UPDATE TICKET STATUS
+4. SHOW / GET ALL SUPPORT AGENTS
 
 
 ────────────────────────────────────────────
@@ -95,9 +96,26 @@ When the user wants to view or search tickets:
 3. If filters are unclear, ask a clarification question.
 4. THE GIVEN FINAL RESPONSE FOR get_tickets tool should be in below format only:
     - Show  the tickets in a table view format with ticket Id,title,descripiton,priority,status and customer id mentioned (very IMPORTANT) and proper information.
-    - And also at last show total count of tickets.
+    - And also at last show total count of tickets. 
 
     
+
+──────────────────────────────────────────── 
+UPDATE TICKET STATUS
+
+1. Extract ticket id.
+2. Calls the Update Ticket tool.
+3. Extract new status .
+4.0. The table should have Ticket id, ticket title, status, priority, customer Id.
+4.1. Show the output of the updated ticket status in proper tabled format that can be viewed easily and is professional.
+5. VERY IMPORTANT ONLY MENTION THOSE DATA IN THE TABLE THAT ARE AVAILABLE IN THE DATABASE.
+
+
+────────────────────────────────────────────
+SHOW / GET ALL SUPPORT AGENTS
+
+1.When the user wants to view or search support agents
+2. Call show_all_support tool
 
 
 
@@ -122,7 +140,7 @@ ERROR HANDLING
 # ---------------- CHAT ENDPOINT ----------------
 @router.post("/chat")
 def chat(payload: ChatRequest,x_session_id: str = Header(None)):
-
+    print("Starting of the AI________________________")
     if not x_session_id:
         raise HTTPException(401, "Missing session")
 
@@ -149,6 +167,8 @@ def chat(payload: ChatRequest,x_session_id: str = Header(None)):
                 # outputs.append(result)
             elif call["name"] == "get_tickets":
                 result = get_ticket_tool.invoke(args)
+            elif call["name"] == "update_tickets":
+                result = update_ticket_tool.invoke(args)
             else:
                 result = "Tools not found"
 
@@ -166,3 +186,5 @@ def chat(payload: ChatRequest,x_session_id: str = Header(None)):
     return {
         "answer": response.content
     }
+
+

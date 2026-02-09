@@ -2,6 +2,7 @@ from langchain.tools import tool
 import requests
 from server.ai_schemas.ticket_input import GetTicketInput, CreateTicketInput, UpdateTicket
 
+
 BASE_URL = "http://127.0.0.1:8000"
 
 
@@ -88,7 +89,7 @@ def create_ticket_tool(
     }
 
 @tool("get_tickets",args_schema=GetTicketInput)
-def get_ticket_tool(customer_email: str = None, priority:str = None, ticket_id: str = None ,auth_token:str =None):
+def get_ticket_tool(customer_email: str, priority:str , ticket_id: str  ,auth_token:str):
     """Fetch or get tickets from the system according to what was been asked or with optional Filters provided by the user."""
     
     if not auth_token:
@@ -135,4 +136,29 @@ def get_ticket_tool(customer_email: str = None, priority:str = None, ticket_id: 
     ]
 
     return formats
+
+
+@tool("update_tickets",args_schema=UpdateTicket)
+def update_ticket_tool(ticket_id : int , status : str, auth_token : str):
+    """Update ticket status."""
+
+    if not auth_token:
+        raise Exception("Not able to fetch because auth token is missing.")
+    
+    headers = {
+        "X-SESSION-ID": auth_token,
+        "Content-type": "application/json"
+    }
+
+    payload = {
+        "status": status
+    }
+
+    response = requests.patch(f"{BASE_URL}/tickets/{ticket_id}/status", headers=headers, json=payload)
+
+    if response.status_code != 200:
+        raise Exception(f"Not able to update the ticket, the reason might be: {response.text}")
+    
+    return response.json()
+
 

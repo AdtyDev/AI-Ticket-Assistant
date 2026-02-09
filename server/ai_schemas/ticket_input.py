@@ -15,3 +15,7 @@ class GetTicketInput(BaseModel):
     ticket_id : Optional[int] = None
     auth_token : str
 
+class UpdateTicket(BaseModel):
+    ticket_id : Optional[int] = None
+    status : Optional[str] = None
+    auth_token : str
