@@ -10,7 +10,7 @@ from fastapi import APIRouter, Header, HTTPException
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
-from server.chatbot import create_ticket_tool, get_ticket_tool, update_ticket_tool
+from server.chatbot import create_ticket_tool, get_ticket_tool, update_ticket_tool, show_all_support
 from server.ai_schemas.chat import ChatRequest
 
 import datetime
@@ -25,7 +25,7 @@ llm = ChatGroq(
     temperature=0
 )
 
-llm_with_tools = llm.bind_tools([create_ticket_tool,get_ticket_tool,update_ticket_tool])
+llm_with_tools = llm.bind_tools([create_ticket_tool,get_ticket_tool,update_ticket_tool,show_all_support])
 
 # SYSTEM PROMPT
 SYSTEM_PROMPT = """
@@ -169,6 +169,8 @@ def chat(payload: ChatRequest,x_session_id: str = Header(None)):
                 result = get_ticket_tool.invoke(args)
             elif call["name"] == "update_tickets":
                 result = update_ticket_tool.invoke(args)
+            elif call["name"] == "show_support":
+                result = show_all_support.invoke(args)
             else:
                 result = "Tools not found"
 

@@ -1,6 +1,7 @@
 from langchain.tools import tool
 import requests
 from server.ai_schemas.ticket_input import GetTicketInput, CreateTicketInput, UpdateTicket
+from server.ai_schemas.support_ag import All_Support
 
 
 BASE_URL = "http://127.0.0.1:8000"
@@ -162,3 +163,24 @@ def update_ticket_tool(ticket_id : int , status : str, auth_token : str):
     return response.json()
 
 
+@tool("show_support", args_schema=All_Support)
+def show_all_support(auth_token: str ):
+    """
+    Show all the support agents
+    """
+
+    if not auth_token:
+        raise Exception("Not able to fetch because auth token is missing.")
+    
+    headers = {
+        "X-SESSION-ID" : auth_token
+    }
+
+    response = requests.get(f"{BASE_URL}/users/support",headers=headers)
+
+    if response.status_code != 200:
+        raise Exception(f"Not able to fetch or show agents because: {response.text}")
+    
+    support_agents = response.json()
+
+    return support_agents
