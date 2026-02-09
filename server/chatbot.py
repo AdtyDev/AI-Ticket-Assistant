@@ -2,7 +2,7 @@ from langchain.tools import tool
 import requests
 from server.ai_schemas.ticket_input import GetTicketInput, CreateTicketInput, UpdateTicket
 from server.ai_schemas.support_ag import All_Support
-
+from server.ai_schemas.customer_inp import ShowCustomers
 
 BASE_URL = "http://127.0.0.1:8000"
 
@@ -184,3 +184,24 @@ def show_all_support(auth_token: str ):
     support_agents = response.json()
 
     return support_agents
+
+@tool("show_customers",args_schema=ShowCustomers)
+def show_all_customer(auth_token:str):
+
+    """ Fetch all the customers"""
+
+    if not auth_token:
+        raise Exception("Not able to fetch because auth token is missing.")
+    
+    headers = {
+        "X-SESSION-ID" : auth_token
+    }
+
+    response = requests.get(f"{BASE_URL}/customers/",headers=headers)
+
+    if response.status_code !=200:
+        raise Exception(f"Not able to fetch all customers because of: {response.text}")
+    
+    customers = response.json()
+
+    return customers
