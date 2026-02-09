@@ -1,6 +1,6 @@
 from langchain.tools import tool
 import requests
-from server.ai_schemas.ticket_input import GetTicketInput, CreateTicketInput
+from server.ai_schemas.ticket_input import GetTicketInput, CreateTicketInput, UpdateTicket
 
 BASE_URL = "http://127.0.0.1:8000"
 
@@ -86,4 +86,53 @@ def create_ticket_tool(
         "ticket_id": data["id"],
         "message": "Ticket created successfully"
     }
+
+@tool("get_tickets",args_schema=GetTicketInput)
+def get_ticket_tool(customer_email: str = None, priority:str = None, ticket_id: str = None ,auth_token:str =None):
+    """Fetch or get tickets from the system according to what was been asked or with optional Filters provided by the user."""
+    
+    if not auth_token:
+        raise Exception("Not able to fetch because auth token is missing.")
+    
+    headers = {
+        "X-SESSION-ID": auth_token 
+    }
+
+    res = requests.get(f"{BASE_URL}/tickets",headers=headers)
+
+    if res.status_code != 200:
+        raise Exception(f"Failed to fetch tickets: {res.text}")
+    tickets = res.json()
+
+    if customer_email:
+        customer_id = get_customer_id_from_email(customer_email,auth_token)
+
+        tickets = [
+            t for t in tickets
+            if t["customer_id"] == customer_id
+        ]
+    
+    if priority:
+        normalized_priority = priority_map.get(priority.upper())
+
+        tickets = [
+            t for t in tickets
+            if t["priority"] ==  normalized_priority
+        ]
+
+    if ticket_id:
+        tickets = [
+            t for t in tickets
+            if t['id'] == ticket_id
+        ]
+
+    if not tickets:
+        return "No tickets found"
+    
+    formats = [
+        f"ID: {t['id']} | title: {t['title']} | Description: {t['description']} | Priority: {t['priority']} | Status: {t['status']} | Assigned_agent: {t['assigned_agent']} | Customer_ID: {t['customer_id']} "
+        for t in tickets
+    ]
+
+    return formats
 

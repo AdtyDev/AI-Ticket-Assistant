@@ -9,5 +9,9 @@ class CreateTicketInput(BaseModel):
     priority: Literal["LOW", "MEDIUM", "HIGH"]
     auth_token: str   # injected at runtime
 
-
+class GetTicketInput(BaseModel):
+    customer_email: Optional[EmailStr] = None
+    priority : Optional[Literal["LOW","MEDIUM","HIGH"]] = None
+    ticket_id : Optional[int] = None
+    auth_token : str
 

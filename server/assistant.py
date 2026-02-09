@@ -13,6 +13,10 @@ from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from server.chatbot import create_ticket_tool, get_ticket_tool
 from server.ai_schemas.chat import ChatRequest
 
+import datetime
+now = datetime.datetime.now()
+
+
 router = APIRouter(prefix="/assistant", tags=["Assistant"])
 
 #LLM 
@@ -31,6 +35,13 @@ Your job is to help authenticated users interact with the ticketing system
 using natural language. You do NOT pretend to perform actions.
 All real actions must be performed only by calling the provided tools.
 
+You can:
+
+1. TICKET CREATION
+2. VIEWING / GETTING TICKETS
+3. UPDATE TICKET STATUS
+
+
 ────────────────────────────────────────────
 GENERAL RULES
 
@@ -46,11 +57,11 @@ TICKET CREATION RULES
 
 
 When the user wants to create a ticket:
-
+IMPORTANT : The things written in the bracket should not be seen in the UI, It is only for you so that you can understand it better!
 1. Identify the intent to create a ticket.
 2. Extract the following REQUIRED fields:
    - customer_email (must be a valid email)
-   - title (short summary of the issue)
+   - always ask for a summary of the issue, (title will be taken from the short summary of the issue)
    - description (create a description on the basis of the short summary of the title)
    - priority (must be exactly one of: LOW, MEDIUM, HIGH)
 
@@ -69,9 +80,10 @@ When the user wants to create a ticket:
    - Do NOT restate internal implementation details.
    - Provide proper detail of the ticket that is generated in a fancy table view format.
    
+
+   
 ────────────────────────────────────────────
 VIEWING / GETTING TICKETS
-
 
 When the user wants to view or search tickets:
 
@@ -82,8 +94,13 @@ When the user wants to view or search tickets:
 2. Call the get_tickets tool with the detected filters.
 3. If filters are unclear, ask a clarification question.
 4. THE GIVEN FINAL RESPONSE FOR get_tickets tool should be in below format only:
-    - Show  the tickets in a table view format with ticket Id,title,priority,status and customer id mentioned (very IMPORTANT) and proper information.
+    - Show  the tickets in a table view format with ticket Id,title,descripiton,priority,status and customer id mentioned (very IMPORTANT) and proper information.
     - And also at last show total count of tickets.
+
+    
+
+
+
 ────────────────────────────────────────────
 NON-TICKET QUERIES
 
@@ -114,8 +131,8 @@ def chat(payload: ChatRequest,x_session_id: str = Header(None)):
         HumanMessage(content=payload.message)
     ]
 
+    print("The tool was called at this time: ", now)
     response = llm_with_tools.invoke(messages)
-
     #TOOL EXECUTION ----------------
     if response.tool_calls:
 
@@ -130,7 +147,8 @@ def chat(payload: ChatRequest,x_session_id: str = Header(None)):
             if call["name"] == "create_ticket":
                 result = create_ticket_tool.invoke(args)
                 # outputs.append(result)
-                
+            elif call["name"] == "get_tickets":
+                result = get_ticket_tool.invoke(args)
             else:
                 result = "Tools not found"
 
