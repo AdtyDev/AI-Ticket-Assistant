@@ -30,6 +30,7 @@ llm_with_tools = llm.bind_tools([create_ticket_tool,get_ticket_tool,update_ticke
 # SYSTEM PROMPT
 SYSTEM_PROMPT = """
 You are an AI-powered CRM Assistant for a support team.
+REMEMBER CHAT HISTORY OF TWO HOURS AND EMPTY & REFRESHES THE DATA AND THE CYCLE REPEATS
 
 Your job is to help authenticated users interact with the ticketing system
 using natural language. You do NOT pretend to perform actions.
@@ -140,55 +141,58 @@ ERROR HANDLING
 # ---------------- CHAT ENDPOINT ----------------
 @router.post("/chat")
 def chat(payload: ChatRequest,x_session_id: str = Header(None)):
-    print("Starting of the AI________________________")
-    if not x_session_id:
-        raise HTTPException(401, "Missing session")
+    print("____________________Starting of the AI________________________")
+    try:
+        if not x_session_id:
+            raise HTTPException(401, "Missing session")
 
-    messages = [
-        SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=payload.message)
-    ]
+        messages = [
+            SystemMessage(content=SYSTEM_PROMPT),
+            HumanMessage(content=payload.message)
+        ]
 
-    print("The tool was called at this time: ", now)
-    response = llm_with_tools.invoke(messages)
-    #TOOL EXECUTION ----------------
-    if response.tool_calls:
+        print("The tool was called at this time: ", now)
+        response = llm_with_tools.invoke(messages)
+        #TOOL EXECUTION ----------------
+        if response.tool_calls:
 
-        outputs = []
+            outputs = []
 
-        for call in response.tool_calls:
-            args = call["args"]
+            for call in response.tool_calls:
+                args = call["args"]
 
-            # Inject auth token
-            args["auth_token"] = x_session_id
+                # Inject auth token
+                args["auth_token"] = x_session_id
 
-            if call["name"] == "create_ticket":
-                result = create_ticket_tool.invoke(args)
-                # outputs.append(result)
-            elif call["name"] == "get_tickets":
-                result = get_ticket_tool.invoke(args)
-            elif call["name"] == "update_tickets":
-                result = update_ticket_tool.invoke(args)
-            elif call["name"] == "show_support":
-                result = show_all_support.invoke(args)
-            elif call["name"] == "show_customers":
-                result = show_all_customer.invoke(args)
-            else:
-                result = "Tools not found"
+                if call["name"] == "create_ticket":
+                    result = create_ticket_tool.invoke(args)
+                    # outputs.append(result)
+                elif call["name"] == "get_tickets":
+                    result = get_ticket_tool.invoke(args)
+                elif call["name"] == "update_tickets":
+                    result = update_ticket_tool.invoke(args)
+                elif call["name"] == "show_support":
+                    result = show_all_support.invoke(args)
+                elif call["name"] == "show_customers":
+                    result = show_all_customer.invoke(args)
+                else:
+                    result = "Tools not found"
 
-            outputs.append(ToolMessage(content=str(result),tool_call_id = call["id"]))
-        
-        final_res = llm_with_tools.invoke(
-            messages + [response]+ outputs
-        )
+                outputs.append(ToolMessage(content=str(result),tool_call_id = call["id"]))
+            
+            final_res = llm_with_tools.invoke(
+                messages + [response]+ outputs
+            )
 
+            return {
+                "answer": final_res.content
+            }
+
+        # NORMAL RESPONSE ----------------
         return {
-            "answer": final_res.content
+            "answer": response.content
         }
-
-    # NORMAL RESPONSE ----------------
-    return {
-        "answer": response.content
-    }
+    except Exception as e:
+        return Exception(f"The error is: {e}")
 
 
