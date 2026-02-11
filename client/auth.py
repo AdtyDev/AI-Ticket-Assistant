@@ -26,20 +26,30 @@ def init_session():
         if k not in st.session_state:
             st.session_state[k] = v
 
-
 def is_logged_in():
     return st.session_state.get("session_id") is not None
 
 def logout():
+    headers = {
+        "X-SESSION-ID": st.session_state.session_id
+    }
+
+    try:
+        requests.delete(
+            "http://localhost:8001/session/logout",
+            headers=headers
+        )
+    except Exception as e:
+        return e
     st.session_state.clear()
     st.rerun()
 
 
 def render():
     init_session()
+    
     # st.header("🔐 Login")
 
-    # emp_id = st.text_input("Employee ID", key="login_emp")
     email = st.text_input("Email", key="login_email")
     password = st.text_input("Password", type="password")
 
