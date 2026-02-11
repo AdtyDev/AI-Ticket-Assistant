@@ -14,6 +14,7 @@ class GetTicketInput(BaseModel):
     priority : Optional[Literal["LOW","MEDIUM","HIGH"]] = None
     ticket_id : Optional[int] = None
     auth_token : str
+    
 
 class UpdateTicket(BaseModel):
     ticket_id : Optional[int] = None

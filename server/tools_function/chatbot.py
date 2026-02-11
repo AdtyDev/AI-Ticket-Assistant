@@ -111,6 +111,8 @@ def get_ticket_tool(customer_email: str, priority:str , ticket_id: str  ,auth_to
         if res.status_code != 200:
             raise Exception(f"Failed to fetch tickets: {res.text}")
         tickets = res.json()
+        print("@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@")
+        # print(tickets)
 
         if customer_email:
             customer_id = get_customer_id_from_email(customer_email,auth_token)
@@ -138,7 +140,7 @@ def get_ticket_tool(customer_email: str, priority:str , ticket_id: str  ,auth_to
             return "No tickets found"
         
         formats = [
-            f"ID: {t['id']} | title: {t['title']} | Description: {t['description']} | Priority: {t['priority']} | Status: {t['status']} | Assigned_agent: {t['assigned_agent']} | Customer_ID: {t['customer_id']} "
+            f"ID: {t['id']} | title: {t['title']} | Description: {t['description']} | Priority: {t['priority']} | Status: {t['status']} | Assigned_agent: {t['assigned_agent']} | Customer_ID: {t['customer_id']} | Created_At: {t['created_at']} | Updated_at: {t['updated_at']}"
             for t in tickets
         ]
 
@@ -216,7 +218,11 @@ def show_all_customer(auth_token:str):
             raise Exception(f"Not able to fetch all customers because of: {response.text}")
         
         customers = response.json()
-        return customers
-    
+
+        return {
+        "type": "customers",
+        "data": customers
+    }
+        
     except Exception as e:
         return Exception(f"Not able to show all the customers because: {e}")
