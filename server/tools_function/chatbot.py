@@ -16,8 +16,33 @@ priority_map = {
 # Customer lookup function
 def get_customer_id_from_email(email: str, auth_token: str) -> int:
     """
-    Fetch customer ID using email.
-    Uses same auth header as Streamlit UI.
+    Retrieve a customer ID using their email address.
+
+    This helper function queries the customer service endpoint
+    and searches for a customer whose email matches the provided value.
+    It uses the session authentication header for authorization.
+
+    Args:
+        email (str):
+            Email address of the customer whose ID should be retrieved.
+
+        auth_token (str):
+            Session authentication token passed via `X-SESSION-ID` header.
+            Required to authorize the request.
+
+    Returns:
+        int:
+            Unique customer ID corresponding to the provided email.
+
+    Raises:
+        Exception:
+            - If the customer service request fails
+            - If no customer exists with the given email
+            - If response parsing fails
+
+    Example:
+        > get_customer_id_from_email("user@example.com", "abc123")
+        42
     """
     try:
         url = f"{BASE_URL}/customers/"
@@ -51,9 +76,52 @@ def create_ticket_tool(
     priority: str,
     auth_token: str,
 ):
-    """Create a support ticket in the system."""
+    """
+    Create a new support ticket in the system.
+
+    This tool allows an AI agent to create a ticket by providing
+    customer details, issue description, and priority level.
+
+    Workflow:
+        1. Resolve customer ID from email
+        2. Normalize priority value
+        3. Send ticket creation request
+        4. Return created ticket metadata
+
+    Args:
+        customer_email (str):
+            Email of the customer for whom the ticket is created.
+
+        title (str):
+            Short summary of the issue.
+
+        description (str):
+            Detailed explanation of the problem.
+
+        priority (str):
+            Ticket urgency level. Accepted values:
+            LOW, MEDIUM, HIGH (case-insensitive).
+
+        auth_token (str):
+            Session authentication token used for API authorization.
+
+    Returns:
+        dict:
+            {
+                "ticket_id": int,
+                "message": "Ticket created successfully"
+            }
+
+    Raises:
+        Exception:
+            - If customer lookup fails
+            - If priority is invalid
+            - If ticket creation API fails
+
+    Notes:
+        Priority values are normalized using `priority_map`.
+    """
     try:
-        # Step 1 — resolve customer_id
         customer_id = None
         if customer_email:
             customer_id = get_customer_id_from_email(
@@ -96,8 +164,44 @@ def create_ticket_tool(
         return Exception(f"Not able to create because: {e}")
 
 @tool("get_tickets",args_schema=GetTicketInput)
-def get_ticket_tool(customer_email: str, priority:str , ticket_id: str  ,auth_token:str):
-    """Fetch or get tickets from the system according to what was been asked or with optional Filters provided by the user."""
+def get_ticket_tool(customer_email: str, 
+                    priority:str , 
+                    ticket_id: str , 
+                    auth_token:str):
+    """
+    Retrieve tickets from the system with optional filters.
+
+    This tool fetches all tickets and applies filters based on
+    customer email, priority, or ticket ID if provided.
+
+    Filters are optional and can be combined.
+
+    Args:
+        customer_email (str):
+            Filter tickets belonging to a specific customer.
+
+        priority (str):
+            Filter by ticket priority (LOW, MEDIUM, HIGH).
+
+        ticket_id (str):
+            Retrieve a specific ticket by its ID.
+
+        auth_token (str):
+            Session authentication token required for access.
+
+    Returns:
+        list[str] | str:
+            - Formatted ticket summaries if found
+            - "No tickets found" if no match exists
+
+    Raises:
+        Exception:
+            - If authentication token is missing
+            - If ticket retrieval API fails
+
+    Notes:
+        Filtering is performed client-side after fetching tickets.
+    """
     try:
         if not auth_token:
             raise Exception("Not able to fetch because auth token is missing.")
@@ -151,7 +255,32 @@ def get_ticket_tool(customer_email: str, priority:str , ticket_id: str  ,auth_to
 
 @tool("update_tickets",args_schema=UpdateTicket)
 def update_ticket_tool(ticket_id : int , status : str, auth_token : str):
-    """Update ticket status."""
+    """
+    Update the status of an existing support ticket.
+
+    This tool allows an AI agent to modify ticket progress
+    (e.g., open → in_progress → resolved).
+
+    Args:
+        ticket_id (int):
+            Unique identifier of the ticket to update.
+
+        status (str):
+            New status value to assign to the ticket.
+
+        auth_token (str):
+            Session authentication token required for authorization.
+
+    Returns:
+        dict:
+            Updated ticket data returned by the API.
+
+    Raises:
+        Exception:
+            - If auth token is missing
+            - If ticket does not exist
+            - If update request fails
+    """
     
     try:
         if not auth_token:
@@ -179,7 +308,24 @@ def update_ticket_tool(ticket_id : int , status : str, auth_token : str):
 @tool("show_support", args_schema=All_Support)
 def show_all_support(auth_token: str ):
     """
-    Show all the support agents
+    Retrieve all support agents from the system.
+
+    This tool fetches the list of users who have
+    support/agent roles assigned.
+
+    Args:
+        auth_token (str):
+            Session authentication token required for access.
+
+    Returns:
+        list[dict]:
+            List of support agents with their details
+            (e.g., ID, name, email, role).
+
+    Raises:
+        Exception:
+            - If auth token is missing
+            - If API request fails
     """
     try:
         if not auth_token:
@@ -203,7 +349,30 @@ def show_all_support(auth_token: str ):
 @tool("show_customers",args_schema=ShowCustomers)
 def show_all_customer(auth_token:str):
 
-    """ Fetch all the customers"""
+    """
+    Retrieve all customers from the system.
+
+    This tool returns the full customer directory,
+    typically used for lookup, ticket creation,
+    or analytics.
+
+    Args:
+        auth_token (str):
+            Session authentication token required
+            to authorize the request.
+
+    Returns:
+        dict:
+            {
+                "type": "customers",
+                "data": [ ... customer objects ... ]
+            }
+
+    Raises:
+        Exception:
+            - If auth token is missing
+            - If API request fails
+    """
     try:
         if not auth_token:
             raise Exception("Not able to fetch because auth token is missing.")
@@ -226,3 +395,169 @@ def show_all_customer(auth_token:str):
         
     except Exception as e:
         return Exception(f"Not able to show all the customers because: {e}")
+
+
+@tool("employee_ticket_summary")
+def employee_ticket_summary_tool(auth_token: str):
+    """
+    Fetch ticket summary for the logged-in employee.
+
+    Returns:
+
+        • Total tickets created
+        • Ticket list with status & priority
+    """
+
+    try:
+        if not auth_token:
+            raise Exception("Missing auth token")
+
+        headers = {
+            "X-SESSION-ID": auth_token
+        }
+
+        res = requests.get(
+            f"{BASE_URL}/analytics/employee/summary",
+            headers=headers
+        )
+
+        if res.status_code != 200:
+            raise Exception(res.text)
+
+        data = res.json()
+
+        return {
+            "type": "employee_summary",
+            "total_tickets": data["total_tickets"],
+            "tickets": data["tickets"]
+        }
+
+    except Exception as e:
+        return Exception(
+            f"Failed to fetch employee summary: {e}"
+        )
+    
+
+
+@tool("support_ticket_summary")
+def support_ticket_summary_tool(auth_token: str):
+    """
+    Fetch workload summary for support agents.
+
+    Returns:
+
+        • Total assigned tickets
+        • Tickets grouped by customer
+    """
+
+    try:
+        if not auth_token:
+            raise Exception("Missing auth token")
+
+        headers = {
+            "X-SESSION-ID": auth_token
+        }
+
+        res = requests.get(
+            f"{BASE_URL}/analytics/support/summary",
+            headers=headers
+        )
+
+        if res.status_code != 200:
+            raise Exception(res.text)
+
+        data = res.json()
+
+        return {
+            "type": "support_summary",
+            "total_tickets": data["total_tickets"],
+            "tickets_by_customer": data["tickets_by_customer"]
+        }
+
+    except Exception as e:
+        return Exception(
+            f"Failed to fetch support summary: {e}"
+        )
+    
+@tool("team_lead_ticket_summary")
+def team_lead_ticket_summary_tool(auth_token: str):
+    """
+    Fetch organization-wide ticket overview.
+
+    Accessible only by team leads.
+
+    Returns:
+
+        • Total tickets
+        • Detailed ticket dataset
+    """
+
+    try:
+        if not auth_token:
+            raise Exception("Missing auth token")
+
+        headers = {
+            "X-SESSION-ID": auth_token
+        }
+
+        res = requests.get(
+            f"{BASE_URL}/analytics/team-lead/summary",
+            headers=headers
+        )
+
+        if res.status_code != 200:
+            raise Exception(res.text)
+
+        data = res.json()
+
+        return {
+            "type": "team_lead_summary",
+            "total_tickets": data["total_tickets"],
+            "tickets": data["tickets"]
+        }
+
+    except Exception as e:
+        return Exception(
+            f"Failed to fetch team lead summary: {e}"
+        )
+    
+@tool("weekly_agent_stats")
+def weekly_agent_stats_tool(auth_token: str):
+    """
+    Fetch weekly performance metrics for agents.
+
+    Returns per-day stats:
+
+        • Opened tickets
+        • Pending tickets
+        • Closed tickets
+        • Agent mapping
+    """
+
+    try:
+        if not auth_token:
+            raise Exception("Missing auth token")
+
+        headers = {
+            "X-SESSION-ID": auth_token
+        }
+
+        res = requests.get(
+            f"{BASE_URL}/analytics/weekly",
+            headers=headers
+        )
+
+        if res.status_code != 200:
+            raise Exception(res.text)
+
+        data = res.json()
+
+        return {
+            "type": "weekly_stats",
+            "data": data
+        }
+
+    except Exception as e:
+        return Exception(
+            f"Failed to fetch weekly stats: {e}"
+        )
