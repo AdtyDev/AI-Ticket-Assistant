@@ -5,7 +5,6 @@ BASE_URL = "http://127.0.0.1:8000"
 
 def login( email: str,password:str):
     payload = {
-        # "emp_id": emp_id,
         "email_id": email,
         "password": password
     }
@@ -48,8 +47,6 @@ def logout():
 def render():
     init_session()
     
-    # st.header("🔐 Login")
-
     email = st.text_input("Email", key="login_email")
     password = st.text_input("Password", type="password")
 

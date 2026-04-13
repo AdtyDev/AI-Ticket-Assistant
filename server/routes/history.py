@@ -54,7 +54,10 @@ def get_conversations(
                 }
             ]
     """
-    return list_conversations(x_session_id)
+    try:
+        return list_conversations(x_session_id)
+    except Exception as e:
+        return (f"The problem is this: {e}")
 
 
 # Get messages
@@ -117,4 +120,7 @@ def get_messages(
                     }
                 ]
         """
-    return load_messages(x_session_id, conv_id)
+    try:
+        return load_messages(x_session_id, conv_id)
+    except Exception as e:
+        return (f"The problem is this: {e}")

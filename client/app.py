@@ -123,8 +123,8 @@ if st.session_state.is_processing:
             answer = f"❗️ **Error:** {e}"
             
         
-        # Append assistant message locally
+        
         st.session_state.history.append({"role": "assistant", "content": answer})
-        # st.chat_message("assistant").write(answer)
+        
         st.session_state.is_processing = False
         st.rerun()

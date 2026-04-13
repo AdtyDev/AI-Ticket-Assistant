@@ -80,28 +80,30 @@ def summarize_conversation(messages: list) -> str:
         "User asked about ticket creation and priority handling.
          Assistant explained workflow and API usage."
     """
+    try:
+        if not messages:
+            return ""
 
-    if not messages:
-        return ""
+        text = "\n".join(
+            [f"{m['role']}: {m['content']}" for m in messages]
+        )
 
-    text = "\n".join(
-        [f"{m['role']}: {m['content']}" for m in messages]
-    )
+        prompt = f"""
+            Summarize the following conversation briefly so it can be used
+            as context for future responses.
 
-    prompt = f"""
-        Summarize the following conversation briefly so it can be used
-        as context for future responses.
+            Conversation:
+            {text}
 
-        Conversation:
-        {text}
+            Summary:
+            """
 
-        Summary:
-        """
+        res = summary_llm.invoke(
+            [HumanMessage(content=prompt)]
+        )
 
-    res = summary_llm.invoke(
-        [HumanMessage(content=prompt)]
-    )
-
-    return res.content # type: ignore
+        return res.content # type: ignore
+    except Exception as e:
+        return (f"The problem is this: {e}")
 
 

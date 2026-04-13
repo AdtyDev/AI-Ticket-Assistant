@@ -13,10 +13,10 @@ class GetTicketInput(BaseModel):
     customer_email: Optional[EmailStr] = None
     priority : Optional[Literal["LOW","MEDIUM","HIGH"]] = None
     ticket_id : Optional[int] = None
-    auth_token : str
+    auth_token : str | None
     
 
 class UpdateTicket(BaseModel):
     ticket_id : Optional[int] = None
     status : Optional[str] = None
-    auth_token : str
+    auth_token : str | None

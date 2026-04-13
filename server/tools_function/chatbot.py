@@ -4,6 +4,7 @@ from server.ai_schemas.ticket_input import GetTicketInput, CreateTicketInput, Up
 from server.ai_schemas.support_ag import All_Support
 from server.ai_schemas.customer_inp import ShowCustomers
 from fastapi import logger
+import streamlit as st
 BASE_URL = "http://127.0.0.1:8000"
 
 
@@ -14,7 +15,7 @@ priority_map = {
     }
 
 # Customer lookup function
-def get_customer_id_from_email(email: str, auth_token: str) -> int:
+def get_customer_id_from_email(email: str, auth_token: str | None) -> int: # type: ignore
     """
     Retrieve a customer ID using their email address.
 
@@ -74,7 +75,7 @@ def create_ticket_tool(
     title: str,
     description: str,
     priority: str,
-    auth_token: str,
+    auth_token: str | None,
 ):
     """
     Create a new support ticket in the system.
@@ -166,10 +167,13 @@ def create_ticket_tool(
 @tool("get_tickets",args_schema=GetTicketInput)
 def get_ticket_tool(customer_email: str, 
                     priority:str , 
-                    ticket_id: str , 
-                    auth_token:str):
+                    ticket_id: str ,
+                    auth_token : str | None): # type: ignore
     """
     Retrieve tickets from the system with optional filters.
+
+    Authentication is handled automatically by the system.
+    Do NOT request or expect auth tokens from the user.
 
     This tool fetches all tickets and applies filters based on
     customer email, priority, or ticket ID if provided.
@@ -177,32 +181,27 @@ def get_ticket_tool(customer_email: str,
     Filters are optional and can be combined.
 
     Args:
-        customer_email (str):
-            Filter tickets belonging to a specific customer.
+    customer_email (str):
+        Filter tickets belonging to a specific customer.
 
-        priority (str):
-            Filter by ticket priority (LOW, MEDIUM, HIGH).
+    priority (str):
+        Filter by ticket priority (LOW, MEDIUM, HIGH).
 
-        ticket_id (str):
-            Retrieve a specific ticket by its ID.
-
-        auth_token (str):
-            Session authentication token required for access.
+    ticket_id (int):
+        Retrieve a specific ticket by its ID.
 
     Returns:
         list[str] | str:
             - Formatted ticket summaries if found
             - "No tickets found" if no match exists
 
-    Raises:
-        Exception:
-            - If authentication token is missing
-            - If ticket retrieval API fails
-
     Notes:
         Filtering is performed client-side after fetching tickets.
     """
+    
     try:
+        # auth_token = st.session_state.session_id
+        print("@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@", auth_token)
         if not auth_token:
             raise Exception("Not able to fetch because auth token is missing.")
         
@@ -215,7 +214,7 @@ def get_ticket_tool(customer_email: str,
         if res.status_code != 200:
             raise Exception(f"Failed to fetch tickets: {res.text}")
         tickets = res.json()
-        print("@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@_@")
+        
         # print(tickets)
 
         if customer_email:
@@ -250,11 +249,13 @@ def get_ticket_tool(customer_email: str,
 
         return formats
     except Exception as e:
-        return Exception(f"Not able to get the tickets because: {e}")
+        return {
+            "error": f"Not able to get the tickets because: {e}"
+        }
 
 
 @tool("update_tickets",args_schema=UpdateTicket)
-def update_ticket_tool(ticket_id : int , status : str, auth_token : str):
+def update_ticket_tool(ticket_id : int , status : str, auth_token : str | None): # type: ignore
     """
     Update the status of an existing support ticket.
 
@@ -306,7 +307,7 @@ def update_ticket_tool(ticket_id : int , status : str, auth_token : str):
 
 
 @tool("show_support", args_schema=All_Support)
-def show_all_support(auth_token: str ):
+def show_all_support(auth_token: str | None ):
     """
     Retrieve all support agents from the system.
 
@@ -347,7 +348,7 @@ def show_all_support(auth_token: str ):
         return Exception(f"Not able to show all the support agents because: {e}")
 
 @tool("show_customers",args_schema=ShowCustomers)
-def show_all_customer(auth_token:str):
+def show_all_customer(auth_token:str | None): 
 
     """
     Retrieve all customers from the system.
@@ -398,7 +399,7 @@ def show_all_customer(auth_token:str):
 
 
 @tool("employee_ticket_summary")
-def employee_ticket_summary_tool(auth_token: str):
+def employee_ticket_summary_tool(auth_token: str |  None): 
     """
     Fetch ticket summary for the logged-in employee.
 
@@ -440,7 +441,7 @@ def employee_ticket_summary_tool(auth_token: str):
 
 
 @tool("support_ticket_summary")
-def support_ticket_summary_tool(auth_token: str):
+def support_ticket_summary_tool(auth_token: str | None): 
     """
     Fetch workload summary for support agents.
 
@@ -480,7 +481,7 @@ def support_ticket_summary_tool(auth_token: str):
         )
     
 @tool("team_lead_ticket_summary")
-def team_lead_ticket_summary_tool(auth_token: str):
+def team_lead_ticket_summary_tool(auth_token: str | None): 
     """
     Fetch organization-wide ticket overview.
 
@@ -522,7 +523,7 @@ def team_lead_ticket_summary_tool(auth_token: str):
         )
     
 @tool("weekly_agent_stats")
-def weekly_agent_stats_tool(auth_token: str):
+def weekly_agent_stats_tool(auth_token: str | None): # type: ignore
     """
     Fetch weekly performance metrics for agents.
 

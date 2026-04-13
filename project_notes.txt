@@ -1,0 +1,12 @@
+while creating ai assistant we add codes like when we want to create a ticket the 
+user should enter credentials and those credentials will be checked in the database 
+if they are verified then only the ticket will be created and after that when user 
+wants to log out the user has to write LOGOUT to logout from the system and the 
+cache refreshes 
+
+ # if status:
+
+    #     tickets = [
+    #         t for t in tickets
+    #         if t['status'] == status
+    #     ]

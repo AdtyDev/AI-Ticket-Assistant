@@ -26,7 +26,10 @@ def _file_path(session_id, conv_id):
             Absolute/relative file path where the conversation
             messages are stored.
     """
-    return f"{STORE_PATH}/{session_id}_{conv_id}.json"
+    try:
+        return f"{STORE_PATH}/{session_id}_{conv_id}.json"
+    except Exception as e:
+        return (f"The problem is this: {e}")
 
 
 
@@ -78,27 +81,29 @@ def save_message(session_id, conv_id, role, content):
         OSError:
             If file writing fails due to permission or disk issues.
     """
+    try:
+        os.makedirs(STORE_PATH, exist_ok=True)
 
-    os.makedirs(STORE_PATH, exist_ok=True)
+        path = _file_path(session_id, conv_id)
 
-    path = _file_path(session_id, conv_id)
+        data = []
 
-    data = []
+        # Load existing messages
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                data = json.load(f)
 
-    # Load existing messages
-    if os.path.exists(path):
-        with open(path, "r") as f:
-            data = json.load(f)
+        # Append new message
+        data.append({
+            "role": role,
+            "content": content
+        })
 
-    # Append new message
-    data.append({
-        "role": role,
-        "content": content
-    })
-
-    # Save back
-    with open(path, "w") as f:
-        json.dump(data, f, indent=2)
+        # Save back
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        return (f"The problem is this: {e}")
 
 
 
@@ -132,13 +137,16 @@ def load_messages(session_id, conv_id):
         OSError:
             If file reading fails.
     """
-    path = _file_path(session_id, conv_id)
+    try:
+        path = _file_path(session_id, conv_id)
 
-    if not os.path.exists(path):
-        return []
+        if not os.path.exists(path):
+            return []
 
-    with open(path, "r") as f:
-        return json.load(f)
+        with open(path, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        return (f"The problem is this: {e}")
 
 
 # List conversations
@@ -172,22 +180,25 @@ def list_conversations(session_id):
         - Only filenames starting with the session ID are considered.
         - File extension `.json` is stripped from results.
     """
-    if not os.path.exists(STORE_PATH):
-        return []
+    try:
+        if not os.path.exists(STORE_PATH):
+            return []
 
-    files = os.listdir(STORE_PATH)
+        files = os.listdir(STORE_PATH)
 
-    convs = []
+        convs = []
 
-    for f in files:
-        if f.startswith(session_id):
-            conv_id = (
-                f.replace(f"{session_id}_", "")
-                .replace(".json", "")
-            )
-            convs.append(conv_id)
+        for f in files:
+            if f.startswith(session_id):
+                conv_id = (
+                    f.replace(f"{session_id}_", "")
+                    .replace(".json", "")
+                )
+                convs.append(conv_id)
 
-    return convs
+        return convs
+    except Exception as e:
+        return (f"The problem is this: {e}")
 
 
 def delete_session_history(session_id):
@@ -222,13 +233,16 @@ def delete_session_history(session_id):
         > delete_session_history("abc123")
         # All abc123_*.json files removed
     """
-    if not os.path.exists(STORE_PATH):
-        return
+    try:
+        if not os.path.exists(STORE_PATH):
+            return
 
-    files = os.listdir(STORE_PATH)
+        files = os.listdir(STORE_PATH)
 
-    for f in files:
-        if f.startswith(session_id):
-            os.remove(
-                os.path.join(STORE_PATH, f)
-            )
+        for f in files:
+            if f.startswith(session_id):
+                os.remove(
+                    os.path.join(STORE_PATH, f)
+                )
+    except Exception as e:
+        return (f"The problem is this: {e}")

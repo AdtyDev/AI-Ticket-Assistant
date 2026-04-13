@@ -56,7 +56,9 @@ def logout_cleanup(
             }
     """
     delete_session_history(x_session_id)
-
-    return {
-        "message": "Session history deleted."
-    }
+    try:
+        return {
+            "message": "Session history deleted."
+        }
+    except Exception as e:
+        return (f"The problem is this: {e}")
